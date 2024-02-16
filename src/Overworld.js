@@ -13,14 +13,62 @@ class Overworld extends Phaser.Scene {
             frameWidth: 16,
             frameHeight: 16
         })
+
+        this.load.image('tilesetImage', 'tileset.png')
+        this.load.tilemapTiledJSON('tilemapJSON', 'overworld.json')
+
     }
 
     create() {
+        
+        //tilemap stuff
+        const map = this.add.tilemap('tilemapJSON') //create tilemap obj
+        
+        //load tileset into map
+        const tileset = map.addTilesetImage('tileset', 'tilesetImage')
+
+        //create layers
+        const bgLayer = map.createLayer('Background', tileset)
+        const terrainLayer = map.createLayer('Terrain', tileset)
+        const treeLayer = map.createLayer('Trees', tileset)
+
+        //search each layer for collide property
+        terrainLayer.setCollisionByProperty({
+            collides: true
+        })
+        treeLayer.setCollisionByProperty({
+            collides: true
+        })
+
+        //get spawn point
+        const slimeSpawn = map.findObject('Spawns', obj => obj.name === 'slimeSpawn')
+        
         // add slime
-        this.slime = this.physics.add.sprite(32, 32, 'slime', 0)
+        this.slime = this.physics.add.sprite(slimeSpawn.x, slimeSpawn.y, 'slime', 0)
         this.slime.body.setCollideWorldBounds(true)
 
         // slime animation
+        this.anims.create({
+            key: 'jiggle',
+            frameRate: 8,
+            repeat: -1,
+            frames: this.anims.generateFrameNumbers('slime', {
+                start: 0,
+                end: 1
+            })
+        })
+        this.slime.play('jiggle')
+
+        //camera work
+        this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
+        this.cameras.main.startFollow(this.slime, true, 0.25,0.25)
+
+        //set world bollide bounds
+        this.physics.world.setBounds(0,0, map.widthInPixels, map.heightInPixels)
+
+        //physics collider
+        this.physics.add.collider(this.slime, terrainLayer)
+        this.physics.add.collider(this.slime, treeLayer)
 
         // input
         this.cursors = this.input.keyboard.createCursorKeys()
